@@ -1,0 +1,123 @@
+Este modelo asegura que la información esté organizada, sea fácil de consultar y se mantenga consistente.
+
+1. Tabla Especialidades
+Esta tabla es fundamental para el primer paso del agendamiento.
+
+Propósito: Almacenar la lista completa de especialidades médicas ofrecidas.
+
+Campos clave:
+
+id_especialidad (Llave primaria)
+
+nombre_especialidad (Texto, ej. "Cardiología", "Pediatría")
+
+activa (Booleano o entero, para indicar si la especialidad está activa en el sistema)
+
+Relación: Una especialidad puede tener muchos profesionales.
+
+2. Tabla Sedes
+Esta tabla permite registrar la ubicación de los centros de atención.
+
+Propósito: Almacenar la información de las sedes (clínicas, hospitales).
+
+Campos clave:
+
+id_sede (Llave primaria)
+
+nombre_sede (Texto, ej. "Sede Principal Belén")
+
+direccion (Texto, ej. "Calle 30A #80B-48")
+
+ciudad (Texto)
+
+Relación: Una sede puede tener muchos profesionales y muchas citas agendadas.
+
+3. Tabla Profesionales
+Esta tabla contiene la información de cada especialista que puede agendar citas.
+
+Propósito: Guardar los datos de los profesionales de la salud.
+
+Campos clave:
+
+id_profesional (Llave primaria)
+
+nombre_completo (Texto)
+
+titulo_profesional (Texto, ej. "Médico Cirujano", "Fisioterapeuta")
+
+anos_experiencia (Entero)
+
+id_especialidad (Llave foránea que se relaciona con la tabla Especialidades)
+
+id_sede (Llave foránea que se relaciona con la tabla Sedes)
+
+Relación: Un profesional pertenece a una sola especialidad y a una sola sede (en este modelo). Puede tener muchos horarios y muchas citas.
+
+4. Tabla Estados_Temporales_Profesionales
+Esta tabla es crucial para la verificación de disponibilidad del profesional.
+
+Propósito: Registrar ausencias programadas o temporales de los profesionales (vacaciones, licencias).
+
+Campos clave:
+
+id_estado (Llave primaria)
+
+id_profesional (Llave foránea que se relaciona con la tabla Profesionales)
+
+tipo_ausencia (Texto, ej. "Vacaciones", "Licencia médica")
+
+fecha_inicio (Fecha)
+
+fecha_fin (Fecha)
+
+Relación: Un profesional puede tener múltiples ausencias registradas.
+
+5. Tabla Horarios
+Esta tabla organiza la disponibilidad de cada profesional por día.
+
+Propósito: Guardar los bloques de tiempo en los que cada profesional está disponible para atender citas.
+
+Campos clave:
+
+id_horario (Llave primaria)
+
+id_profesional (Llave foránea que se relaciona con la tabla Profesionales)
+
+fecha (Fecha)
+
+hora_inicio (Hora)
+
+hora_fin (Hora)
+
+duracion_cita (Entero, en minutos, ej. 30)
+
+disponible (Booleano)
+
+Relación: Un horario pertenece a un solo profesional.
+
+6. Tabla Citas
+Esta es la tabla central, donde se registran todas las citas agendadas.
+
+Propósito: Almacenar los detalles de cada cita médica programada.
+
+Campos clave:
+
+id_cita (Llave primaria)
+
+nombre_paciente (Texto)
+
+id_especialidad (Llave foránea)
+
+id_sede (Llave foránea)
+
+id_profesional (Llave foránea)
+
+fecha (Fecha)
+
+hora (Hora)
+
+estado_cita (Texto, ej. "Agendada", "Cancelada", "Completada")
+
+Relación: Cada cita está vinculada a una especialidad, una sede y un profesional específicos.
+
+Este diseño permite un flujo de datos eficiente para cada etapa del agendamiento, desde la selección de la especialidad hasta la confirmación de la cita. Las relaciones entre las tablas aseguran que, al seleccionar una opción, se puedan filtrar y cargar automáticamente las siguientes opciones de manera precisa.

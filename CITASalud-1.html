@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Citas Médicas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .form-container {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
+        }
+        .step-heading {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            @apply bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+        }
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-all duration-300 ease-in-out hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Estilos para el modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
+
+<div id="app-container" class="container w-full mx-auto">
+    <!-- Pantalla de Inicio de Sesión -->
+    <div id="login-screen" class="form-container">
+        <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Iniciar Sesión</h2>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label for="cedula" class="block text-sm font-medium text-gray-700">Cédula</label>
+                <input type="text" id="cedula" placeholder="Cédula" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                <input type="password" id="password" placeholder="Contraseña" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            </div>
+            <button type="submit" class="btn-primary w-full">Ingresar</button>
+        </form>
+        <p id="login-message" class="mt-4 text-center text-red-500 font-medium"></p>
+    </div>
+
+    <!-- Pantalla Principal de Agendamiento de Citas -->
+    <div id="main-app" class="hidden">
+        <header class="flex justify-between items-center py-4 px-6 bg-white shadow-md rounded-lg">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-bold text-gray-800">Sistema de Citas</h1>
+                <p class="ml-4 text-gray-600">Bienvenido, <span id="user-name" class="font-semibold"></span></p>
+            </div>
+            <button id="logout-btn" class="text-sm text-gray-600 hover:text-red-500 transition-colors">Cerrar Sesión</button>
+        </header>
+
+        <div class="form-container">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Agendar Nueva Cita</h2>
+            
+            <!-- Step 1: Selección de Especialidad -->
+            <div id="step-1" class="mb-8">
+                <h3 class="text-xl font-semibold step-heading">1. Seleccionar Especialidad</h3>
+                <div class="relative">
+                    <select id="especialidad-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        <option value="">Selecciona una especialidad...</option>
+                    </select>
+                </div>
+                <p id="step-1-message" class="mt-2 text-sm text-red-500"></p>
+            </div>
+
+            <!-- Step 2: Selección de Sede -->
+            <div id="step-2" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold step-heading">2. Seleccionar Sede</h3>
+                <div class="relative">
+                    <select id="sede-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        <option value="">Selecciona una sede...</option>
+                    </select>
+                </div>
+                <p id="step-2-message" class="mt-2 text-sm text-red-500"></p>
+            </div>
+
+            <!-- Step 3: Selección de Profesional -->
+            <div id="step-3" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold step-heading">3. Seleccionar Profesional</h3>
+                <div class="relative">
+                    <select id="profesional-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        <option value="">Selecciona un profesional...</option>
+                    </select>
+                </div>
+                <p id="step-3-message" class="mt-2 text-sm text-red-500"></p>
+            </div>
+
+            <!-- Step 4: Selección de Horario -->
+            <div id="step-4" class="mb-8 hidden">
+                <h3 class="text-xl font-semibold step-heading">4. Seleccionar Horario</h3>
+                <div class="relative">
+                    <input type="datetime-local" id="datetime-picker" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                </div>
+                <p id="step-4-message" class="mt-2 text-sm text-red-500"></p>
+            </div>
+
+            <!-- Resumen y Botón de Agendar -->
+            <div id="step-5" class="mt-8 hidden">
+                <h3 class="text-xl font-semibold step-heading">Resumen de la Cita</h3>
+                <div id="cita-summary" class="bg-gray-100 p-6 rounded-lg text-gray-700 space-y-2">
+                    <p><span class="font-semibold">Especialidad:</span> <span id="summary-especialidad"></span></p>
+                    <p><span class="font-semibold">Sede:</span> <span id="summary-sede"></span></p>
+                    <p><span class="font-semibold">Profesional:</span> <span id="summary-profesional"></span></p>
+                    <p><span class="font-semibold">Fecha y Hora:</span> <span id="summary-datetime"></span></p>
+                </div>
+                <!-- Botones de Gemini API -->
+                <div class="flex flex-col gap-3 mt-4">
+                    <button id="get-gemini-info-btn" class="btn-secondary flex items-center justify-center gap-2">
+                        <span id="gemini-info-loader" class="hidden loader"></span>
+                        <span id="gemini-info-text">✨ Obtener información sobre la especialidad ✨</span>
+                    </button>
+                    <button id="get-gemini-tts-btn" class="btn-secondary flex items-center justify-center gap-2">
+                        <span id="gemini-tts-loader" class="hidden loader"></span>
+                        <span id="gemini-tts-text">✨ Escuchar resumen de la cita ✨</span>
+                    </button>
+                    <div id="gemini-info-container" class="mt-4 p-4 bg-blue-100 rounded-lg hidden">
+                        <p id="gemini-info-content" class="text-gray-800 text-sm italic"></p>
+                    </div>
+                </div>
+                <div class="mt-6 flex gap-4">
+                    <button id="agendar-btn" class="btn-primary flex-1">Confirmar Cita</button>
+                    <button id="cancelar-btn" class="btn-secondary flex-1">Cancelar</button>
+                </div>
+                <p id="final-message" class="mt-4 text-center text-sm font-medium"></p>
+            </div>
+        </div>
+
+        <!-- Panel de Citas Agendadas (HU-09) -->
+        <div class="form-container mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Mis Citas</h2>
+            <div id="citas-list" class="space-y-4">
+                <p id="no-citas-message" class="text-center text-gray-500 hidden">No tienes citas registradas.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmaciones y mensajes -->
+<div id="custom-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <p id="modal-message" class="text-lg text-gray-800"></p>
+        <div class="modal-buttons" id="modal-buttons-container">
+            <button id="modal-confirm-btn" class="btn-primary">Sí</button>
+            <button id="modal-cancel-btn" class="btn-secondary">No</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- Simulación de la Base de Datos en Memoria ---
+        // Estos datos se basan en el archivo sistema_citas_corregido.sql
+        const db = {
+            especialidades: [
+                { id: 1, nombre: 'Cardiología' }, { id: 2, nombre: 'Pediatría' }, { id: 3, nombre: 'Dermatología' }, { id: 4, nombre: 'Ginecología' },
+                { id: 5, nombre: 'Neurología' }, { id: 6, nombre: 'Odontología' }, { id: 7, nombre: 'Ortopedia' }, { id: 8, nombre: 'Oftalmología' },
+                { id: 9, nombre: 'Urología' }, { id: 10, nombre: 'Psiquiatría' }, { id: 11, nombre: 'Medicina Interna' }, { id: 12, nombre: 'Nutrición' },
+                { id: 13, 'nombre': 'Fisioterapia' }, { id: 14, 'nombre': 'Oncología' }, { id: 15, 'nombre': 'Radiología' }, { id: 16, 'nombre': 'Anestesiología' },
+                { id: 17, 'nombre': 'Cirugía General' }, { id: 18, 'nombre': 'Endocrinología' }, { id: 19, 'nombre': 'Gastroenterología' }, { id: 20, 'nombre': 'Hematología' },
+                { id: 21, 'nombre': 'Nefrología' }, { id: 22, 'nombre': 'Neumología' }, { id: 23, 'nombre': 'Reumatología' }, { id: 24, 'nombre': 'Inmunología' },
+                { id: 25, 'nombre': 'Genética Médica' }, { id: 26, 'nombre': 'Toxicología' }, { id: 27, 'nombre': 'Geriatría' }, { id: 28, 'nombre': 'Medicina Familiar' },
+                { id: 29, 'nombre': 'Patología' }, { id: 30, 'nombre': 'Alergología' }, { id: 31, 'nombre': 'Otorrinolaringología' }, { id: 32, 'nombre': 'Terapia Respiratoria' },
+                { id: 33, 'nombre': 'Medicina Nuclear' }, { id: 34, 'nombre': 'Dermopatología' }, { id: 35, 'nombre': 'Oftalmología Pediátrica' }, { id: 36, 'nombre': 'Cardiología Intervencionista' },
+                { id: 37, 'nombre': 'Cirugía Plástica' }, { id: 38, 'nombre': 'Medicina Estética' }, { id: 39, 'nombre': 'Acupuntura' }, { id: 40, 'nombre': 'Homeopatía' },
+                { id: 41, 'nombre': 'Quiropráctica' }, { id: 42, 'nombre': 'Osteopatía' }, { id: 43, 'nombre': 'Podología' }, { id: 44, 'nombre': 'Medicina del Deporte' },
+                { id: 45, 'nombre': 'Sexología' }, { id: 46, 'nombre': 'Epidemiología' }, { id: 47, 'nombre': 'Medicina Forense' }, { id: 48, 'nombre': 'Infectología' },
+                { id: 49, 'nombre': 'Nefrología Pediátrica' }, { id: 50, 'nombre': 'Medicina Crítica' }, { id: 51, 'nombre': 'Endoscopia' }
+            ],
+            sedes: [
+                { id: 1, nombre: 'Clínica de la Montaña', direccion: 'Calle 50 # 10-25', ciudad: 'Medellín' },
+                { id: 2, nombre: 'Hospital San Juan de Dios', direccion: 'Carrera 70 # 30A-10', ciudad: 'Medellín' },
+                { id: 3, nombre: 'IPS Sura', direccion: 'Avenida El Poblado # 2-30', ciudad: 'Medellín' },
+                { id: 4, nombre: 'Clínica del Prado', direccion: 'Carrera 45 # 50-80', ciudad: 'Medellín' },
+                { id: 5, nombre: 'Sede El Poblado', direccion: 'Carrera 43A # 1-150', ciudad: 'Medellín' },
+                { id: 6, nombre: 'Sede Envigado', direccion: 'Calle 38 Sur # 43-25', ciudad: 'Envigado' },
+                { id: 7, nombre: 'Clínica de la 33', direccion: 'Diagonal 75B # 33A-10', ciudad: 'Envigado' },
+                { id: 8, nombre: 'Sede Itagüí', direccion: 'Calle 51 # 50-75', ciudad: 'Itagüí' },
+                { id: 9, nombre: 'Hospital San Rafael', direccion: 'Carrera 42 # 20-30', ciudad: 'Itagüí' },
+                { id: 10, nombre: 'Sede Bello', direccion: 'Avenida 42 # 52-10', ciudad: 'Bello' },
+                { id: 11, nombre: 'Centro de Salud del Norte', direccion: 'Calle 50A # 48-50', ciudad: 'Bello' },
+                { id: 12, nombre: 'Sede La Ceja', direccion: 'Calle 21 # 19-40', ciudad: 'La Ceja' },
+                { id: 13, nombre: 'Centro de Salud del Este', direccion: 'Carrera 20 # 25-10', ciudad: 'Rionegro' },
+                { id: 14, nombre: 'Sede El Carmen', direccion: 'Carrera 48 # 50-22', ciudad: 'El Carmen de Viboral' },
+                { id: 15, nombre: 'IPS de la Candelaria', direccion: 'Carrera 53 # 50-10', ciudad: 'Medellín' },
+                { id: 16, nombre: 'Hospital Central', direccion: 'Avenida Oriental # 49-80', ciudad: 'Medellín' },
+                { id: 17, nombre: 'Sede Robledo', direccion: 'Calle 65 # 98-10', ciudad: 'Medellín' },
+                { id: 18, nombre: 'Clínica de las Américas', direccion: 'Diagonal 74B # 39B-12', ciudad: 'Medellín' },
+                { id: 19, nombre: 'Sede Centro de Salud', direccion: 'Carrera 80 # 2-50', ciudad: 'Medellín' },
+                { id: 20, nombre: 'Sede Los Colores', direccion: 'Carrera 73 # 52-25', ciudad: 'Medellín' },
+                { id: 21, nombre: 'Clínica Salud', direccion: 'Carrera 78 # 45-60', ciudad: 'Medellín' },
+                { id: 22, nombre: 'Sede Belén', direccion: 'Calle 30A # 80B-48', ciudad: 'Medellín' },
+                { id: 23, nombre: 'Sede Guayabal', direccion: 'Carrera 52 # 7-10', ciudad: 'Medellín' },
+                { id: 24, nombre: 'Hospital de la 10', direccion: 'Calle 10 # 45-20', ciudad: 'Medellín' },
+                { id: 25, nombre: 'IPS de Laureles', direccion: 'Carrera 70 # 38-120', ciudad: 'Medellín' },
+                { id: 26, nombre: 'Sede Caldas', direccion: 'Carrera 50 # 129-30', ciudad: 'Caldas' },
+                { id: 27, nombre: 'Sede Sabaneta', direccion: 'Calle 70 Sur # 43A-22', ciudad: 'Sabaneta' },
+                { id: 28, nombre: 'Clínica del Sur', direccion: 'Carrera 43A # 13-10', ciudad: 'Envigado' },
+                { id: 29, nombre: 'Sede Copacabana', direccion: 'Calle 50 # 49-10', ciudad: 'Copacabana' },
+                { id: 30, nombre: 'Centro Médico Envigado', direccion: 'Calle 36D # 40-55', ciudad: 'Envigado' },
+                { id: 31, nombre: 'Hospital Regional', direccion: 'Carrera 20 # 15-50', ciudad: 'Marinilla' },
+                { id: 32, nombre: 'Sede La Estrella', direccion: 'Calle 79 Sur # 50-80', ciudad: 'La Estrella' },
+                { id: 33, nombre: 'Clínica de Rionegro', direccion: 'Carrera 55 # 35-10', ciudad: 'Rionegro' },
+                { id: 34, nombre: 'Sede La Unión', direccion: 'Calle 21 # 21-50', ciudad: 'La Unión' },
+                { id: 35, nombre: 'Sede El Retiro', direccion: 'Carrera 20 # 19-30', ciudad: 'El Retiro' },
+                { id: 36, nombre: 'Sede San Vicente', direccion: 'Calle 20 # 20-20', ciudad: 'San Vicente' },
+                { id: 37, nombre: 'Sede Barbosa', direccion: 'Carrera 17 # 16-50', ciudad: 'Barbosa' },
+                { id: 38, nombre: 'Sede Girardota', direccion: 'Calle 6 # 15-10', ciudad: 'Girardota' },
+                { id: 39, nombre: 'Sede Don Matías', direccion: 'Carrera 30 # 31-20', ciudad: 'Don Matías' },
+                { id: 40, nombre: 'Sede Santa Fe de Antioquia', direccion: 'Carrera 10 # 9-50', ciudad: 'Santa Fe de Antioquia' },
+                { id: 41, nombre: 'Sede Amagá', direccion: 'Calle 31 # 30-10', ciudad: 'Amagá' },
+                { id: 42, nombre: 'Sede Andes', direccion: 'Carrera 50 # 51-20', ciudad: 'Andes' },
+                { id: 43, nombre: 'Sede Ciudad Bolívar', direccion: 'Calle 49 # 50-10', ciudad: 'Ciudad Bolívar' },
+                { id: 44, nombre: 'Sede Frontino', direccion: 'Carrera 10 # 11-10', ciudad: 'Frontino' },
+                { id: 45, nombre: 'Sede Guarne', direccion: 'Calle 50 # 40-50', ciudad: 'Guarne' },
+                { id: 46, nombre: 'Sede Jardín', direccion: 'Carrera 10 # 9-10', ciudad: 'Jardín' },
+                { id: 47, nombre: 'Sede Jericó', direccion: 'Carrera 10 # 10-20', ciudad: 'Jericó' },
+                { id: 48, nombre: 'Sede Puerto Berrío', direccion: 'Carrera 3 # 6-15', ciudad: 'Puerto Berrío' },
+                { id: 49, nombre: 'Sede Salgar', direccion: 'Calle 3 # 4-20', ciudad: 'Salgar' },
+                { id: 50, nombre: 'Sede Sonsón', direccion: 'Carrera 8 # 6-30', ciudad: 'Sonsón' }
+            ],
+            profesionales: [
+                { id: 1, nombre_completo: 'Dr. Juan Pérez', titulo_profesional: 'Cardiología', anos_experiencia: 15, id_especialidad: 1, id_sede: 1 },
+                { id: 2, nombre_completo: 'Dra. Ana Gómez', titulo_profesional: 'Pediatría', anos_experiencia: 10, id_especialidad: 2, id_sede: 2 },
+                { id: 3, nombre_completo: 'Dr. Carlos López', titulo_profesional: 'Dermatología', anos_experiencia: 8, id_especialidad: 3, id_sede: 3 },
+                { id: 4, nombre_completo: 'Dra. María Rodríguez', titulo_profesional: 'Ginecología', anos_experiencia: 12, id_especialidad: 4, id_sede: 4 },
+                { id: 5, nombre_completo: 'Dr. Daniel Castro', titulo_profesional: 'Neurología', anos_experiencia: 5, id_especialidad: 5, id_sede: 5 },
+                { id: 6, nombre_completo: 'Dra. Laura Morales', titulo_profesional: 'Odontología', anos_experiencia: 7, id_especialidad: 6, id_sede: 6 },
+                { id: 7, nombre_completo: 'Dr. Andrés Restrepo', titulo_profesional: 'Ortopedia', anos_experiencia: 20, id_especialidad: 7, id_sede: 7 },
+                { id: 8, nombre_completo: 'Dra. Sofía Vargas', titulo_profesional: 'Oftalmología', anos_experiencia: 9, id_especialidad: 8, id_sede: 8 },
+                { id: 9, nombre_completo: 'Dr. Felipe Herrera', titulo_profesional: 'Urología', anos_experiencia: 11, id_especialidad: 9, id_sede: 9 },
+                { id: 10, nombre_completo: 'Dra. Valentina Torres', titulo_profesional: 'Psiquiatría', anos_experiencia: 6, id_especialidad: 10, id_sede: 10 },
+                { id: 11, nombre_completo: 'Dr. Diego Escobar', titulo_profesional: 'Cardiología', anos_experiencia: 14, id_especialidad: 1, id_sede: 11 },
+                { id: 12, nombre_completo: 'Dra. Paola Castro', titulo_profesional: 'Pediatría', anos_experiencia: 18, id_especialidad: 2, id_sede: 12 },
+                { id: 13, nombre_completo: 'Dr. Camilo Giraldo', titulo_profesional: 'Dermatología', anos_experiencia: 4, id_especialidad: 3, id_sede: 13 },
+                { id: 14, nombre_completo: 'Dra. Sara Pérez', titulo_profesional: 'Ginecología', anos_experiencia: 13, id_especialidad: 4, id_sede: 14 },
+                { id: 15, nombre_completo: 'Dr. David Sánchez', titulo_profesional: 'Neurología', anos_experiencia: 16, id_especialidad: 5, id_sede: 15 },
+                { id: 16, nombre_completo: 'Dra. Natalia Orozco', titulo_profesional: 'Odontología', anos_experiencia: 8, id_especialidad: 6, id_sede: 16 },
+                { id: 17, nombre_completo: 'Dr. Fernando Marín', titulo_profesional: 'Ortopedia', anos_experiencia: 10, id_especialidad: 7, id_sede: 17 },
+                { id: 18, nombre_completo: 'Dra. Juliana Ospina', titulo_profesional: 'Oftalmología', anos_experiencia: 5, id_especialidad: 8, id_sede: 18 },
+                { id: 19, nombre_completo: 'Dr. Ricardo Londoño', titulo_profesional: 'Urología', anos_experiencia: 17, id_especialidad: 9, id_sede: 19 },
+                { id: 20, nombre_completo: 'Dra. Gabriela Valencia', titulo_profesional: 'Psiquiatría', anos_experiencia: 12, id_especialidad: 10, id_sede: 20 },
+                { id: 21, nombre_completo: 'Dr. Hugo Bedoya', titulo_profesional: 'Cardiología', anos_experiencia: 10, id_especialidad: 1, id_sede: 21 },
+                { id: 22, nombre_completo: 'Dra. Isabel Ríos', titulo_profesional: 'Pediatría', anos_experiencia: 9, id_especialidad: 2, id_sede: 22 },
+                { id: 23, nombre_completo: 'Dr. Javier Botero', titulo_profesional: 'Dermatología', anos_experiencia: 6, id_especialidad: 3, id_sede: 23 },
+                { id: 24, nombre_completo: 'Dra. Luisa Restrepo', titulo_profesional: 'Ginecología', anos_experiencia: 11, id_especialidad: 4, id_sede: 24 },
+                { id: 25, nombre_completo: 'Dr. Manuel Gómez', titulo_profesional: 'Neurología', anos_experiencia: 15, id_especialidad: 5, id_sede: 25 },
+                { id: 26, nombre_completo: 'Dra. Nora Pineda', titulo_profesional: 'Odontología', anos_experiencia: 13, id_especialidad: 6, id_sede: 26 },
+                { id: 27, nombre_completo: 'Dr. Óscar Vélez', titulo_profesional: 'Ortopedia', anos_experiencia: 19, id_especialidad: 7, id_sede: 27 },
+                { id: 28, nombre_completo: 'Dra. Patricia Vélez', titulo_profesional: 'Oftalmología', anos_experiencia: 7, id_especialidad: 8, id_sede: 28 },
+                { id: 29, nombre_completo: 'Dr. Ricardo Zuluaga', titulo_profesional: 'Urología', anos_experiencia: 10, id_especialidad: 9, id_sede: 29 },
+                { id: 30, nombre_completo: 'Dra. Sofía Alzate', titulo_profesional: 'Psiquiatría', anos_experiencia: 8, id_especialidad: 10, id_sede: 30 },
+                { id: 31, nombre_completo: 'Dr. Daniel Arias', titulo_profesional: 'Medicina Interna', anos_experiencia: 12, id_especialidad: 11, id_sede: 31 },
+                { id: 32, nombre_completo: 'Dra. Paula Betancur', titulo_profesional: 'Nutrición', anos_experiencia: 9, id_especialidad: 12, id_sede: 32 },
+                { id: 33, nombre_completo: 'Dr. Jorge Bernal', titulo_profesional: 'Fisioterapia', anos_experiencia: 15, id_especialidad: 13, id_sede: 33 },
+                { id: 34, nombre_completo: 'Dra. Camila Cardona', titulo_profesional: 'Oncología', anos_experiencia: 7, id_especialidad: 14, id_sede: 34 },
+                { id: 35, nombre_completo: 'Dr. Sebastián Ceballos', titulo_profesional: 'Radiología', anos_experiencia: 10, id_especialidad: 15, id_sede: 35 },
+                { id: 36, nombre_completo: 'Dra. Carolina Correa', titulo_profesional: 'Anestesiología', anos_experiencia: 11, id_especialidad: 16, id_sede: 36 },
+                { id: 37, nombre_completo: 'Dr. Fabio Franco', titulo_profesional: 'Cirugía General', anos_experiencia: 18, id_especialidad: 17, id_sede: 37 },
+                { id: 38, nombre_completo: 'Dra. Laura Garcés', titulo_profesional: 'Endocrinología', anos_experiencia: 8, id_especialidad: 18, id_sede: 38 },
+                { id: 39, nombre_completo: 'Dr. Santiago García', titulo_profesional: 'Gastroenterología', anos_experiencia: 13, id_especialidad: 19, id_sede: 39 },
+                { id: 40, nombre_completo: 'Dra. Mónica Gil', titulo_profesional: 'Hematología', anos_experiencia: 6, id_especialidad: 20, id_sede: 40 },
+                { id: 41, nombre_completo: 'Dr. Germán Hoyos', titulo_profesional: 'Nefrología', anos_experiencia: 14, id_especialidad: 21, id_sede: 41 },
+                { id: 42, nombre_completo: 'Dra. Andrea Lopera', titulo_profesional: 'Neumología', anos_experiencia: 9, id_especialidad: 22, id_sede: 42 },
+                { id: 43, nombre_completo: 'Dr. Felipe López', titulo_profesional: 'Reumatología', anos_experiencia: 12, id_especialidad: 23, id_sede: 43 },
+                { id: 44, nombre_completo: 'Dra. Juliana Mesa', titulo_profesional: 'Inmunología', anos_experiencia: 10, id_especialidad: 24, id_sede: 44 },
+                { id: 45, nombre_completo: 'Dr. Mateo Osorio', titulo_profesional: 'Genética Médica', anos_experiencia: 7, id_especialidad: 25, id_sede: 45 },
+                { id: 46, nombre_completo: 'Dra. Paula Rincón', titulo_profesional: 'Toxicología', anos_experiencia: 16, id_especialidad: 26, id_sede: 46 },
+                { id: 47, nombre_completo: 'Dr. Juan Pablo Serna', titulo_profesional: 'Geriatría', anos_experiencia: 11, id_especialidad: 27, id_sede: 47 },
+                { id: 48, nombre_completo: 'Dra. Isabel Sierra', titulo_profesional: 'Medicina Familiar', anos_experiencia: 13, id_especialidad: 28, id_sede: 48 },
+                { id: 49, nombre_completo: 'Dr. Nicolás Toro', titulo_profesional: 'Patología', anos_experiencia: 9, id_especialidad: 29, id_sede: 49 },
+                { id: 50, nombre_completo: 'Dra. Viviana Urrego', titulo_profesional: 'Alergología', anos_experiencia: 15, id_especialidad: 30, id_sede: 50 },
+                { id: 51, nombre_completo: 'Dr. David Zapata', titulo_profesional: 'Otorrinolaringología', anos_experiencia: 10, id_especialidad: 31, id_sede: 1 },
+                { id: 52, nombre_completo: 'Dra. Marcela Alzate', titulo_profesional: 'Terapia Respiratoria', anos_experiencia: 8, id_especialidad: 32, id_sede: 2 },
+                { id: 53, nombre_completo: 'Dr. Cristian Cadavid', titulo_profesional: 'Medicina Nuclear', anos_experiencia: 12, id_especialidad: 33, id_sede: 3 },
+                { id: 54, nombre_completo: 'Dra. Daniela Echeverri', titulo_profesional: 'Dermopatología', anos_experiencia: 7, id_especialidad: 34, id_sede: 4 },
+                { id: 55, nombre_completo: 'Dr. Esteban Flórez', titulo_profesional: 'Oftalmología Pediátrica', anos_experiencia: 14, id_especialidad: 35, id_sede: 5 },
+                { id: 56, nombre_completo: 'Dra. Juliana Giraldo', titulo_profesional: 'Cardiología Intervencionista', anos_experiencia: 11, id_especialidad: 36, id_sede: 6 },
+                { id: 57, nombre_completo: 'Dr. Lorenzo Isaza', titulo_profesional: 'Cirugía Plástica', anos_experiencia: 17, id_especialidad: 37, id_sede: 7 },
+                { id: 58, nombre_completo: 'Dra. Manuela Jiménez', titulo_profesional: 'Medicina Estética', anos_experiencia: 9, id_especialidad: 38, id_sede: 8 },
+                { id: 59, nombre_completo: 'Dr. Pablo Marín', titulo_profesional: 'Acupuntura', anos_experiencia: 10, id_especialidad: 39, id_sede: 9 },
+                { id: 60, nombre_completo: 'Dra. Carolina Molina', titulo_profesional: 'Homeopatía', anos_experiencia: 15, id_especialidad: 40, id_sede: 10 },
+                { id: 61, nombre_completo: 'Dr. Alejandro Ochoa', titulo_profesional: 'Quiropráctica', anos_experiencia: 8, id_especialidad: 41, id_sede: 11 },
+                { id: 62, nombre_completo: 'Dra. Valentina Quiroz', titulo_profesional: 'Osteopatía', anos_experiencia: 13, id_especialidad: 42, id_sede: 12 },
+                { id: 63, nombre_completo: 'Dr. Juan José Quintero', titulo_profesional: 'Podología', anos_experiencia: 6, id_especialidad: 43, id_sede: 13 },
+                { id: 64, nombre_completo: 'Dra. Diana Restrepo', titulo_profesional: 'Medicina del Deporte', anos_experiencia: 11, id_especialidad: 44, id_sede: 14 },
+                { id: 65, nombre_completo: 'Dr. Felipe Rojas', titulo_profesional: 'Sexología', anos_experiencia: 16, id_especialidad: 45, id_sede: 15 },
+                { id: 66, nombre_completo: 'Dra. Mónica Saldarriaga', titulo_profesional: 'Epidemiología', anos_experiencia: 9, id_especialidad: 46, id_sede: 16 },
+                { id: 67, nombre_completo: 'Dr. Camilo Sepúlveda', titulo_profesional: 'Medicina Forense', anos_experiencia: 12, id_especialidad: 47, id_sede: 17 },
+                { id: 68, nombre_completo: 'Dra. Liliana Tamayo', titulo_profesional: 'Infectología', anos_experiencia: 10, id_especialidad: 48, id_sede: 18 },
+                { id: 69, nombre_completo: 'Dr. Ricardo Tobón', titulo_profesional: 'Nefrología Pediátrica', anos_experiencia: 14, id_especialidad: 49, id_sede: 19 },
+                { id: 70, nombre_completo: 'Dra. Sandra Vargas', titulo_profesional: 'Medicina Crítica', anos_experiencia: 7, id_especialidad: 50, id_sede: 20 },
+                { id: 71, nombre_completo: 'Dr. Juan David Vásquez', titulo_profesional: 'Cardiología', anos_experiencia: 18, id_especialidad: 1, id_sede: 21 },
+                { id: 72, nombre_completo: 'Dra. Juliana Villegas', titulo_profesional: 'Pediatría', anos_experiencia: 11, id_especialidad: 2, id_sede: 22 },
+                { id: 73, nombre_completo: 'Dr. Andrés Zapata', titulo_profesional: 'Dermatología', anos_experiencia: 13, id_especialidad: 3, id_sede: 23 },
+                { id: 74, nombre_completo: 'Dra. Camila Zuluaga', titulo_profesional: 'Ginecología', anos_experiencia: 9, id_especialidad: 4, id_sede: 24 },
+                { id: 75, nombre_completo: 'Dr. Daniel Acevedo', titulo_profesional: 'Neurología', anos_experiencia: 15, id_especialidad: 5, id_sede: 25 },
+                { id: 76, nombre_completo: 'Dra. Laura Álvarez', titulo_profesional: 'Odontología', anos_experiencia: 8, id_especialidad: 6, id_sede: 26 },
+                { id: 77, nombre_completo: 'Dr. Sebastián Bernal', titulo_profesional: 'Ortopedia', anos_experiencia: 10, id_especialidad: 7, id_sede: 27 },
+                { id: 78, nombre_completo: 'Dra. Valentina Cañas', titulo_profesional: 'Oftalmología', anos_experiencia: 7, id_especialidad: 8, id_sede: 28 },
+                { id: 79, nombre_completo: 'Dr. Juan Camilo Calle', titulo_profesional: 'Urología', anos_experiencia: 12, id_especialidad: 9, id_sede: 29 },
+                { id: 80, nombre_completo: 'Dra. Sofía Castrillón', titulo_profesional: 'Psiquiatría', anos_experiencia: 16, id_especialidad: 10, id_sede: 30 },
+            ],
+            pacientes: [
+                { id: 1, nombre_del_paciente: 'Pedro Ramírez', contraseña: '4641870852' },
+                { id: 2, nombre_del_paciente: 'Sofía Rojas', contraseña: '1063893040' },
+                { id: 3, nombre_del_paciente: 'Martín Garcés', contraseña: '9726843578' },
+                { id: 4, nombre_del_paciente: 'Lucía Giraldo', contraseña: '2868696190' },
+                { id: 5, nombre_del_paciente: 'Andrés Betancur', contraseña: '4526901967' },
+                { id: 6, nombre_del_paciente: 'Valeria Vélez', contraseña: '1143146975' },
+                { id: 7, nombre_del_paciente: 'Ricardo Correa', contraseña: '7070809784' },
+                { id: 8, nombre_del_paciente: 'Daniela Morales', contraseña: '1175329723' },
+                { id: 9, nombre_del_paciente: 'Esteban López', contraseña: '8140962573' },
+                { id: 10, nombre_del_paciente: 'Mariana Sánchez', contraseña: '1919311719' },
+                { id: 11, nombre_del_paciente: 'José Villa', contraseña: '4489710940' },
+                { id: 12, nombre_del_paciente: 'Carolina Ospina', contraseña: '2612430604' },
+                { id: 13, nombre_del_paciente: 'Felipe Urrego', contraseña: '1874371916' },
+                { id: 14, nombre_del_paciente: 'Isabella Londoño', contraseña: '2890436125' },
+                { id: 15, nombre_del_paciente: 'Sebastián Rojas', contraseña: '7972826543' },
+                { id: 16, nombre_del_paciente: 'Paola Mesa', contraseña: '6804642047' },
+                { id: 17, nombre_del_paciente: 'Miguel Ángel', contraseña: '1458456744' },
+                { id: 18, nombre_del_paciente: 'Laura Franco', contraseña: '4885545096' },
+                { id: 19, nombre_del_paciente: 'Juan David', contraseña: '5476449269' },
+                { id: 20, nombre_del_paciente: 'Ana Sofía', contraseña: '5224612640' },
+                { id: 21, nombre_del_paciente: 'Carlos Pineda', contraseña: '1540223661' },
+                { id: 22, nombre_del_paciente: 'Viviana Cardona', contraseña: '4276807102' },
+                { id: 23, nombre_del_paciente: 'Andrés Calle', contraseña: '2775149165' },
+                { id: 24, nombre_del_paciente: 'Camila Salazar', contraseña: '4155316920' },
+                { id: 25, nombre_del_paciente: 'Diego Zapata', contraseña: '1073256195' },
+                { id: 26, nombre_del_paciente: 'Natalia Restrepo', contraseña: '5434216961' },
+                { id: 27, nombre_del_paciente: 'Gabriel Escobar', contraseña: '9360110041' },
+                { id: 28, nombre_del_paciente: 'Sara Valencia', contraseña: '2263841713' },
+                { id: 29, nombre_del_paciente: 'David Osorio', contraseña: '4406565057' },
+                { id: 30, nombre_del_paciente: 'María Jaramillo', contraseña: '6859050169' },
+                { id: 31, nombre_del_paciente: 'Ricardo Varela', contraseña: '9210957613' },
+                { id: 32, nombre_del_paciente: 'Paula Gil', contraseña: '8108047493' },
+                { id: 33, nombre_del_paciente: 'Juan David Ochoa', contraseña: '7063289374' },
+                { id: 34, nombre_del_paciente: 'Isabel Torres', contraseña: '8134972009' },
+                { id: 35, nombre_del_paciente: 'Esteban Arias', contraseña: '2699108004' },
+                { id: 36, nombre_del_paciente: 'Laura Restrepo', contraseña: '9118832764' },
+                { id: 37, nombre_del_paciente: 'Mauricio Marín', contraseña: '6346740815' },
+                { id: 38, nombre_del_paciente: 'Manuela Gómez', contraseña: '7158702052' },
+                { id: 39, nombre_del_paciente: 'Alejandro Pérez', contraseña: '3241592017' },
+                { id: 40, nombre_del_paciente: 'Carolina Estrada', contraseña: '5594092530' },
+                { id: 41, nombre_del_paciente: 'Fernando Zapata', contraseña: '3360520960' },
+                { id: 42, nombre_del_paciente: 'Diana Mesa', contraseña: '6941369661' },
+                { id: 43, nombre_del_paciente: 'Julián Soto', contraseña: '9465462144' },
+                { id: 44, nombre_del_paciente: 'Silvia Giraldo', contraseña: '9934080332' },
+                { id: 45, nombre_del_paciente: 'Camilo Jaramillo', contraseña: '7223699244' },
+                { id: 46, nombre_del_paciente: 'Luisa Rueda', contraseña: '7331363151' },
+                { id: 47, nombre_del_paciente: 'Simón Cadavid', contraseña: '3497108537' },
+                { id: 48, nombre_del_paciente: 'Isabella Echeverri', contraseña: '7721968406' },
+                { id: 49, nombre_del_paciente: 'Fabián Cárdenas', contraseña: '3325369719' },
+                { id: 50, nombre_del_paciente: 'Sofía Correa', contraseña: '4095611837' }
+            ],
+            ausencias: [
+                { id: 1, id_profesional: 1, tipo: 'Vacaciones', fecha_inicio: '2025-10-20', fecha_fin: '2025-10-27' },
+                { id: 2, id_profesional: 5, tipo: 'Licencia médica', fecha_inicio: '2025-11-05', fecha_fin: '2025-11-08' },
+                { id: 3, id_profesional: 10, tipo: 'Congreso', fecha_inicio: '2025-10-01', fecha_fin: '2025-10-03' },
+                { id: 4, id_profesional: 15, tipo: 'Vacaciones', fecha_inicio: '2025-12-15', fecha_fin: '2025-12-31' },
+                { id: 5, id_profesional: 20, tipo: 'Licencia médica', fecha_inicio: '2025-11-10', fecha_fin: '2025-11-14' }
+            ],
+            horarios_disponibles: [],
+            citas: []
+        };
+
+        let loggedInPatient = null;
+        let lastCitaId = 0;
+        let lastHorarioId = 0;
+        let activeModal = null;
+
+        // Función para mostrar un modal de confirmación o mensaje
+        const showModal = (message, isConfirmation = false) => {
+            const modal = document.getElementById('custom-modal');
+            const modalMessage = document.getElementById('modal-message');
+            const modalButtons = document.getElementById('modal-buttons-container');
+
+            modalMessage.textContent = message;
+            if (isConfirmation) {
+                modalButtons.classList.remove('hidden');
+            } else {
+                modalButtons.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+
+            return new Promise(resolve => {
+                const confirmBtn = document.getElementById('modal-confirm-btn');
+                const cancelBtn = document.getElementById('modal-cancel-btn');
+
+                const handleConfirm = () => {
+                    modal.classList.add('hidden');
+                    confirmBtn.removeEventListener('click', handleConfirm);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    modal.classList.add('hidden');
+                    confirmBtn.removeEventListener('click', handleConfirm);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(false);
+                };
+
+                confirmBtn.addEventListener('click', handleConfirm);
+                cancelBtn.addEventListener('click', handleCancel);
+
+                activeModal = { confirmBtn, cancelBtn, handleConfirm, handleCancel };
+            });
+        };
+
+        // Función para ocultar el modal
+        const hideModal = () => {
+            const modal = document.getElementById('custom-modal');
+            modal.classList.add('hidden');
+            if (activeModal) {
+                activeModal.confirmBtn.removeEventListener('click', activeModal.handleConfirm);
+                activeModal.cancelBtn.removeEventListener('click', activeModal.handleCancel);
+                activeModal = null;
+            }
+        };
+        
+        // --- Lógica de la API Simulada ---
+        
+        // Simular la generación de horarios disponibles
+        const generateHorarios = () => {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            for (let i = 0; i < 20; i++) { // Generar horarios para 20 días
+                const date = new Date(tomorrow);
+                date.setDate(date.getDate() + i);
+
+                const dayOfWeek = date.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) { // Omitir fines de semana
+                    continue;
+                }
+                
+                for (let prof of db.profesionales) {
+                    const isAbsent = db.ausencias.some(a => {
+                        const start = new Date(a.fecha_inicio);
+                        const end = new Date(a.fecha_fin);
+                        return a.id_profesional === prof.id && date >= start && date <= end;
+                    });
+
+                    if (isAbsent) continue;
+                    
+                    for (let hour = 8; hour <= 17; hour++) { // Horas de 8 AM a 5 PM
+                        for (let minute = 0; minute < 60; minute += 30) { // 30 minutos de duración
+                            const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+                            lastHorarioId++;
+                            db.horarios_disponibles.push({
+                                id_horario: lastHorarioId,
+                                id_profesional: prof.id,
+                                fecha: date.toISOString().split('T')[0],
+                                hora_inicio: startTime,
+                                disponible: true
+                            });
+                        }
+                    }
+                }
+            }
+        };
+
+        // Simular algunas citas agendadas inicialmente
+        const generateInitialCitas = () => {
+            const horariosParaCitas = [...db.horarios_disponibles].filter(h => h.disponible).slice(0, 50);
+            for (let i = 0; i < horariosParaCitas.length; i++) {
+                const horario = horariosParaCitas[i];
+                lastCitaId++;
+                const paciente = db.pacientes[i % db.pacientes.length];
+                db.citas.push({
+                    id_cita: lastCitaId,
+                    id_paciente: paciente.id,
+                    id_profesional: horario.id_profesional,
+                    id_horario: horario.id_horario,
+                    estado_cita: 'Agendada'
+                });
+                horario.disponible = false;
+            }
+        };
+        
+        // Función para simular el retraso de una API
+        const simulateApiLatency = (data) => {
+            return new Promise(resolve => setTimeout(() => resolve(data), 500));
+        };
+
+        // API para obtener especialidades con disponibilidad (HU-01)
+        const getEspecialidades = async () => {
+            const especialidadesConProfesionales = new Set(db.profesionales.map(p => p.id_especialidad));
+            const especialidadesConDisponibilidad = db.horarios_disponibles.filter(h => h.disponible).map(h => {
+                const prof = db.profesionales.find(p => p.id === h.id_profesional);
+                return prof ? prof.id_especialidad : null;
+            });
+            const especialidadesDisponiblesIds = new Set(especialidadesConDisponibilidad);
+
+            const resultado = db.especialidades.filter(e => especialidadesConProfesionales.has(e.id)).sort((a, b) => a.nombre.localeCompare(b.nombre)).map(e => ({
+                ...e,
+                disponible: especialidadesDisponiblesIds.has(e.id)
+            }));
+
+            return simulateApiLatency(resultado);
+        };
+
+        // API para obtener sedes por especialidad (HU-02)
+        const getSedesByEspecialidad = async (especialidadId) => {
+            const profesionalesConEspecialidad = db.profesionales.filter(p => p.id_especialidad === parseInt(especialidadId));
+            const sedesIds = new Set(profesionalesConEspecialidad.map(p => p.id_sede));
+            const sedesFiltradas = db.sedes.filter(s => sedesIds.has(s.id)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+            return simulateApiLatency(sedesFiltradas);
+        };
+
+        // API para obtener profesionales por sede y especialidad (HU-03)
+        const getProfesionalesBySedeAndEspecialidad = async (especialidadId, sedeId) => {
+            const profesionales = db.profesionales.filter(p => p.id_especialidad === parseInt(especialidadId) && p.id_sede === parseInt(sedeId));
+            const hoy = new Date();
+            const sesentaDias = new Date();
+            sesentaDias.setDate(hoy.getDate() + 60);
+
+            const resultado = profesionales.filter(p => {
+                // Filtrar por disponibilidad en los próximos 60 días
+                const tieneDisponibilidad = db.horarios_disponibles.some(h => {
+                    const horarioFecha = new Date(h.fecha);
+                    return h.id_profesional === p.id && h.disponible && horarioFecha >= hoy && horarioFecha <= sesentaDias;
+                });
+
+                if (!tieneDisponibilidad) return false;
+
+                // Filtrar por ausencias
+                const estaAusente = db.ausencias.some(a => {
+                    const inicio = new Date(a.fecha_inicio);
+                    const fin = new Date(a.fecha_fin);
+                    return a.id_profesional === p.id && hoy >= inicio && hoy <= fin;
+                });
+                
+                return !estaAusente;
+            }).sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
+            
+            return simulateApiLatency(resultado);
+        };
+
+        // API para obtener horarios disponibles de un profesional (HU-04)
+        const getHorariosByProfesional = async (profesionalId, pacienteId) => {
+            const hoy = new Date().toISOString().split('T')[0];
+            const horarios = db.horarios_disponibles.filter(h =>
+                h.id_profesional === parseInt(profesionalId) &&
+                h.disponible &&
+                h.fecha >= hoy
+            );
+
+            // Filtrar horarios que se crucen con citas ya agendadas por el paciente
+            const citasDelPaciente = db.citas.filter(c => c.id_paciente === pacienteId);
+            const horariosFiltrados = horarios.filter(h => {
+                const tieneConflicto = citasDelPaciente.some(c => {
+                    const citaHorario = db.horarios_disponibles.find(ch => ch.id_horario === c.id_horario);
+                    return citaHorario && citaHorario.fecha === h.fecha && citaHorario.hora_inicio === h.hora_inicio;
+                });
+                return !tieneConflicto;
+            });
+            return simulateApiLatency(horariosFiltrados);
+        };
+
+        // API para agendar la cita (HU-05)
+        const agendarCita = async (pacienteId, profesionalId, horarioId) => {
+            // Simular condición de carrera
+            const horario = db.horarios_disponibles.find(h => h.id_horario === parseInt(horarioId));
+            if (!horario || !horario.disponible) {
+                return { success: false, message: 'No es posible agendar la cita. El horario ya no está disponible.' };
+            }
+
+            // Marcar el horario como no disponible y registrar la cita
+            horario.disponible = false;
+            lastCitaId++;
+            db.citas.push({
+                id_cita: lastCitaId,
+                id_paciente: pacienteId,
+                id_profesional: profesionalId,
+                id_horario: parseInt(horarioId),
+                estado_cita: 'Agendada'
+            });
+
+            // En un sistema real se enviaría un correo aquí
+            return simulateApiLatency({ success: true, message: 'Cita agendada correctamente. Se ha enviado un correo de confirmación.' });
+        };
+
+        // API para obtener las citas de un paciente (HU-09)
+        const getCitasPaciente = async (pacienteId) => {
+            const citas = db.citas.filter(c => c.id_paciente === pacienteId);
+            const citasDetalladas = citas.map(c => {
+                const profesional = db.profesionales.find(p => p.id === c.id_profesional);
+                const horario = db.horarios_disponibles.find(h => h.id_horario === c.id_horario);
+                const especialidad = db.especialidades.find(e => e.id === profesional.id_especialidad);
+                const sede = db.sedes.find(s => s.id === profesional.id_sede);
+
+                return {
+                    fecha: horario.fecha,
+                    hora: horario.hora_inicio,
+                    profesional: profesional.nombre_completo,
+                    especialidad: especialidad.nombre,
+                    sede: sede.nombre,
+                    estado: c.estado_cita
+                };
+            }).sort((a,b) => new Date(`${a.fecha}T${a.hora}`) - new Date(`${b.fecha}T${b.hora}`));
+
+            return simulateApiLatency(citasDetalladas);
+        };
+
+        // --- Lógica del Frontend y Manejo del Estado ---
+
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const loginMessage = document.getElementById('login-message');
+        const userNameSpan = document.getElementById('user-name');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const especialidadSelect = document.getElementById('especialidad-select');
+        const sedeSelect = document.getElementById('sede-select');
+        const profesionalSelect = document.getElementById('profesional-select');
+        const datetimePicker = document.getElementById('datetime-picker');
+
+        const step2Container = document.getElementById('step-2');
+        const step3Container = document.getElementById('step-3');
+        const step4Container = document.getElementById('step-4');
+        const step5Container = document.getElementById('step-5');
+
+        const summaryEspecialidad = document.getElementById('summary-especialidad');
+        const summarySede = document.getElementById('summary-sede');
+        const summaryProfesional = document.getElementById('summary-profesional');
+        const summaryDatetime = document.getElementById('summary-datetime');
+        const agendarBtn = document.getElementById('agendar-btn');
+        const cancelarBtn = document.getElementById('cancelar-btn');
+        const finalMessage = document.getElementById('final-message');
+        const citasList = document.getElementById('citas-list');
+        const noCitasMessage = document.getElementById('no-citas-message');
+
+        const getGeminiInfoBtn = document.getElementById('get-gemini-info-btn');
+        const geminiInfoLoader = document.getElementById('gemini-info-loader');
+        const geminiInfoText = document.getElementById('gemini-info-text');
+        const geminiInfoContainer = document.getElementById('gemini-info-container');
+        const geminiInfoContent = document.getElementById('gemini-info-content');
+
+        const getGeminiTtsBtn = document.getElementById('get-gemini-tts-btn');
+        const geminiTtsLoader = document.getElementById('gemini-tts-loader');
+        const geminiTtsText = document.getElementById('gemini-tts-text');
+
+        let selected = {
+            especialidadId: null,
+            especialidadNombre: null,
+            sedeId: null,
+            sedeNombre: null,
+            profesionalId: null,
+            profesionalNombre: null,
+            datetime: null,
+            horarioId: null,
+            profesionalSedeId: null,
+        };
+
+        // Inicializar datos y generar horarios
+        generateHorarios();
+        generateInitialCitas();
+
+        // Manejar el inicio de sesión
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cedula = document.getElementById('cedula').value;
+            const password = document.getElementById('password').value;
+
+            const paciente = db.pacientes.find(p => p.contraseña === password);
+            
+            if (paciente) {
+                loggedInPatient = paciente;
+                userNameSpan.textContent = paciente.nombre_del_paciente;
+                loginScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                loadEspecialidades();
+                loadCitas();
+            } else {
+                loginMessage.textContent = 'Credenciales inválidas, por favor intente de nuevo.';
+                setTimeout(() => loginMessage.textContent = '', 3000);
+            }
+        });
+
+        // Manejar el cierre de sesión
+        logoutBtn.addEventListener('click', () => {
+            loggedInPatient = null;
+            selected = {};
+            mainApp.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            // Resetear formularios y vistas
+            especialidadSelect.value = '';
+            sedeSelect.innerHTML = '<option value="">Selecciona una sede...</option>';
+            profesionalSelect.innerHTML = '<option value="">Selecciona un profesional...</option>';
+            step2Container.classList.add('hidden');
+            step3Container.classList.add('hidden');
+            step4Container.classList.add('hidden');
+            step5Container.classList.add('hidden');
+            geminiInfoContainer.classList.add('hidden');
+        });
+
+        // Cargar especialidades al inicio
+        const loadEspecialidades = async () => {
+            const especialidades = await getEspecialidades();
+            especialidadSelect.innerHTML = '<option value="">Selecciona una especialidad...</option>';
+            especialidades.forEach(e => {
+                const option = document.createElement('option');
+                option.value = e.id;
+                option.textContent = e.nombre;
+                if (!e.disponible) {
+                    option.disabled = true;
+                    option.textContent += ' (Sin disponibilidad)';
+                }
+                especialidadSelect.appendChild(option);
+            });
+        };
+
+        // Manejar el cambio de especialidad (HU-01)
+        especialidadSelect.addEventListener('change', async (e) => {
+            selected.especialidadId = e.target.value;
+            selected.especialidadNombre = e.target.options[e.target.selectedIndex].textContent.replace(' (Sin disponibilidad)', '');
+            
+            // Resetear pasos siguientes
+            step2Container.classList.add('hidden');
+            step3Container.classList.add('hidden');
+            step4Container.classList.add('hidden');
+            step5Container.classList.add('hidden');
+            geminiInfoContainer.classList.add('hidden');
+            if (!selected.especialidadId) return;
+
+            // Cargar sedes (HU-02)
+            const sedes = await getSedesByEspecialidad(selected.especialidadId);
+            sedeSelect.innerHTML = '<option value="">Selecciona una sede...</option>';
+            sedes.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.id;
+                option.textContent = `${s.nombre}, ${s.direccion}, ${s.ciudad}`;
+                sedeSelect.appendChild(option);
+            });
+            step2Container.classList.remove('hidden');
+        });
+
+        // Manejar el cambio de sede (HU-02)
+        sedeSelect.addEventListener('change', async (e) => {
+            selected.sedeId = e.target.value;
+            selected.sedeNombre = e.target.options[e.target.selectedIndex].textContent;
+            
+            // Resetear pasos siguientes
+            step3Container.classList.add('hidden');
+            step4Container.classList.add('hidden');
+            step5Container.classList.add('hidden');
+            geminiInfoContainer.classList.add('hidden');
+            if (!selected.sedeId) return;
+
+            // Cargar profesionales (HU-03)
+            const profesionales = await getProfesionalesBySedeAndEspecialidad(selected.especialidadId, selected.sedeId);
+            profesionalSelect.innerHTML = '<option value="">Selecciona un profesional...</option>';
+            profesionales.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre_completo} - ${p.titulo_profesional} (${p.anos_experiencia} años de experiencia)`;
+                profesionalSelect.appendChild(option);
+            });
+            step3Container.classList.remove('hidden');
+        });
+
+        // Manejar el cambio de profesional (HU-03)
+        profesionalSelect.addEventListener('change', async (e) => {
+            selected.profesionalId = e.target.value;
+            selected.profesionalNombre = e.target.options[e.target.selectedIndex].textContent;
+            selected.profesionalSedeId = db.profesionales.find(p => p.id === parseInt(selected.profesionalId)).id_sede;
+            
+            // Resetear pasos siguientes
+            step4Container.classList.add('hidden');
+            step5Container.classList.add('hidden');
+            geminiInfoContainer.classList.add('hidden');
+            if (!selected.profesionalId) return;
+
+            // Cargar horarios disponibles (HU-04)
+            const horarios = await getHorariosByProfesional(selected.profesionalId, loggedInPatient.id);
+            if (horarios.length > 0) {
+                // Configurar el datetime-local con las opciones
+                const primerHorario = new Date(`${horarios[0].fecha}T${horarios[0].hora_inicio}`);
+                datetimePicker.min = primerHorario.toISOString().slice(0, 16);
+                datetimePicker.value = '';
+                datetimePicker.disabled = false;
+                step4Container.classList.remove('hidden');
+            } else {
+                datetimePicker.disabled = true;
+                document.getElementById('step-4-message').textContent = 'No hay horarios disponibles en los próximos 60 días.';
+            }
+        });
+
+        // Manejar la selección de horario (HU-04)
+        datetimePicker.addEventListener('change', (e) => {
+            const selectedDate = new Date(e.target.value);
+            const formattedDate = selectedDate.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+            const formattedTime = selectedDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            selected.datetime = `${formattedDate} a las ${formattedTime}`;
+
+            const horarioEncontrado = db.horarios_disponibles.find(h => {
+                const horarioDateTime = new Date(`${h.fecha}T${h.hora_inicio}`);
+                return horarioDateTime.getTime() === selectedDate.getTime();
+            });
+
+            if (horarioEncontrado) {
+                selected.horarioId = horarioEncontrado.id_horario;
+                
+                // Mostrar resumen (HU-05)
+                summaryEspecialidad.textContent = selected.especialidadNombre;
+                summarySede.textContent = selected.sedeNombre;
+                summaryProfesional.textContent = selected.profesionalNombre;
+                summaryDatetime.textContent = selected.datetime;
+                step5Container.classList.remove('hidden');
+            } else {
+                // Horario no válido o ya ocupado
+                selected.horarioId = null;
+                step5Container.classList.add('hidden');
+                document.getElementById('step-4-message').textContent = 'El horario seleccionado no es válido o ya está ocupado.';
+            }
+        });
+
+        // Manejar el agendamiento (HU-05)
+        agendarBtn.addEventListener('click', async () => {
+            if (!selected.horarioId) {
+                finalMessage.textContent = 'Por favor, selecciona un horario válido.';
+                finalMessage.classList.add('text-red-500');
+                return;
+            }
+
+            const resultado = await agendarCita(loggedInPatient.id, parseInt(selected.profesionalId), selected.horarioId);
+
+            if (resultado.success) {
+                finalMessage.textContent = resultado.message;
+                finalMessage.classList.remove('text-red-500');
+                finalMessage.classList.add('text-green-500');
+                setTimeout(() => {
+                    // Resetear el formulario para agendar una nueva cita
+                    especialidadSelect.value = '';
+                    sedeSelect.innerHTML = '<option value="">Selecciona una sede...</option>';
+                    profesionalSelect.innerHTML = '<option value="">Selecciona un profesional...</option>';
+                    datetimePicker.value = '';
+                    step2Container.classList.add('hidden');
+                    step3Container.classList.add('hidden');
+                    step4Container.classList.add('hidden');
+                    step5Container.classList.add('hidden');
+                    finalMessage.textContent = '';
+                    geminiInfoContainer.classList.add('hidden');
+                    loadCitas(); // Actualizar la lista de citas
+                }, 3000);
+            } else {
+                finalMessage.textContent = resultado.message;
+                finalMessage.classList.remove('text-green-500');
+                finalMessage.classList.add('text-red-500');
+            }
+        });
+        
+        // Manejar la cancelación del agendamiento (HU-05)
+        cancelarBtn.addEventListener('click', async () => {
+            const confirmed = await showModal("¿Está seguro de que no desea seguir con el agendamiento de la cita?", true);
+            hideModal();
+            if (confirmed) {
+                finalMessage.textContent = 'Agendamiento de cita cancelado exitosamente';
+                finalMessage.classList.remove('text-red-500');
+                finalMessage.classList.add('text-gray-500');
+                setTimeout(() => {
+                    // Resetear el formulario
+                    especialidadSelect.value = '';
+                    sedeSelect.innerHTML = '<option value="">Selecciona una sede...</option>';
+                    profesionalSelect.innerHTML = '<option value="">Selecciona un profesional...</option>';
+                    datetimePicker.value = '';
+                    step2Container.classList.add('hidden');
+                    step3Container.classList.add('hidden');
+                    step4Container.classList.add('hidden');
+                    step5Container.classList.add('hidden');
+                    finalMessage.textContent = '';
+                    geminiInfoContainer.classList.add('hidden');
+                }, 3000);
+            }
+        });
+
+        // Cargar y mostrar citas del paciente (HU-09)
+        const loadCitas = async () => {
+            const citas = await getCitasPaciente(loggedInPatient.id);
+            citasList.innerHTML = '';
+            if (citas.length === 0) {
+                noCitasMessage.classList.remove('hidden');
+            } else {
+                noCitasMessage.classList.add('hidden');
+                citas.forEach(cita => {
+                    const citaItem = document.createElement('div');
+                    citaItem.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm';
+                    citaItem.innerHTML = `
+                        <p class="font-bold text-gray-800">${cita.especialidad}</p>
+                        <p class="text-sm text-gray-600">${cita.profesional}</p>
+                        <p class="text-sm text-gray-500">
+                            <span class="font-semibold">Sede:</span> ${cita.sede} - 
+                            <span class="font-semibold">Fecha:</span> ${cita.fecha} -
+                            <span class="font-semibold">Hora:</span> ${cita.hora}
+                        </p>
+                        <p class="text-sm font-semibold mt-2">Estado: <span class="
+                            ${cita.estado === 'Agendada' ? 'text-blue-600' :
+                             cita.estado === 'Cancelada' ? 'text-red-600' : 'text-green-600'}">
+                            ${cita.estado}
+                        </span></p>
+                    `;
+                    citasList.appendChild(citaItem);
+                });
+            }
+        };
+
+        // --- Funcionalidades de la API de Gemini ---
+
+        // Función para obtener información de la especialidad desde Gemini
+        getGeminiInfoBtn.addEventListener('click', async () => {
+            if (!selected.especialidadNombre) return;
+
+            geminiInfoLoader.classList.remove('hidden');
+            geminiInfoText.classList.add('hidden');
+            getGeminiInfoBtn.disabled = true;
+
+            try {
+                const prompt = `Explica en un párrafo corto y fácil de entender qué hace un profesional de la especialidad de ${selected.especialidadNombre} y qué se puede esperar de la cita. No des consejos médicos.`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: "Actúa como un asistente de información médica amigable. Explica de manera sencilla roles y expectativas, sin dar diagnósticos ni recomendaciones." }]
+                    },
+                };
+                const apiKey = ""; // If you want to use models other than gemini-2.5-flash-preview-05-20 or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (text) {
+                    geminiInfoContent.textContent = text;
+                    geminiInfoContainer.classList.remove('hidden');
+                } else {
+                    geminiInfoContent.textContent = 'No se pudo obtener la información. Intenta de nuevo más tarde.';
+                    geminiInfoContainer.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error al llamar a la API de Gemini:', error);
+                geminiInfoContent.textContent = 'Hubo un error al procesar la solicitud. Por favor, inténtalo de nuevo.';
+                geminiInfoContainer.classList.remove('hidden');
+            } finally {
+                geminiInfoLoader.classList.add('hidden');
+                geminiInfoText.classList.remove('hidden');
+                getGeminiInfoBtn.disabled = false;
+            }
+        });
+
+        // Función para la síntesis de voz del resumen de la cita
+        getGeminiTtsBtn.addEventListener('click', async () => {
+            const summaryText = `Tu cita ha sido agendada. Especialidad: ${selected.especialidadNombre}. Sede: ${selected.sedeNombre}. Profesional: ${selected.profesionalNombre}. Fecha y hora: ${selected.datetime}.`;
+
+            geminiTtsLoader.classList.remove('hidden');
+            geminiTtsText.classList.add('hidden');
+            getGeminiTtsBtn.disabled = true;
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: summaryText }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Kore" }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+                const apiKey = ""; // Leave as-is
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    console.error('No se recibieron datos de audio o el formato es incorrecto.');
+                }
+            } catch (error) {
+                console.error('Error al llamar a la API de TTS:', error);
+            } finally {
+                geminiTtsLoader.classList.add('hidden');
+                geminiTtsText.classList.remove('hidden');
+                getGeminiTtsBtn.disabled = false;
+            }
+        });
+
+        // Funciones de utilidad para convertir el audio PCM a WAV
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+            
+            // RIFF identifier
+            writeString(view, 0, 'RIFF');
+            // file length
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            // RIFF type
+            writeString(view, 8, 'WAVE');
+            // format chunk identifier
+            writeString(view, 12, 'fmt ');
+            // format chunk length
+            view.setUint32(16, 16, true);
+            // sample format (raw)
+            view.setUint16(20, 1, true);
+            // channel count
+            view.setUint16(22, 1, true);
+            // sample rate
+            view.setUint32(24, sampleRate, true);
+            // byte rate (sample rate * block align)
+            view.setUint32(28, sampleRate * 2, true);
+            // block align (channel count * bytes per sample)
+            view.setUint16(32, 2, true);
+            // bits per sample
+            view.setUint16(34, 16, true);
+            // data chunk identifier
+            writeString(view, 36, 'data');
+            // data chunk length
+            view.setUint32(40, pcm16.length * 2, true);
+            
+            // write the PCM samples
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+            
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
